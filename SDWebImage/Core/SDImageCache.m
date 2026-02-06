@@ -9,6 +9,7 @@
 #import "SDImageCache.h"
 #import "SDInternalMacros.h"
 #import "NSImage+Compatibility.h"
+#import "UIImage+MultiFormat.h"
 #import "SDImageCodersManager.h"
 #import "SDImageCoderHelper.h"
 #import "SDAnimatedImage.h"
@@ -282,11 +283,17 @@ static NSString * _defaultDiskCacheDirectory;
                     format = [SDImageCoderHelper CGImageContainsAlpha:image.CGImage] ? SDImageFormatPNG : SDImageFormatJPEG;
                 }
             }
-            id<SDImageCoder> imageCoder = context[SDWebImageContextImageCoder];
-            if (!imageCoder) {
-                imageCoder = [SDImageCodersManager sharedManager];
+            NSData *encodedData;
+            if ([image respondsToSelector:@selector(animatedImageData)]) {
+                // This API will encode the animation for `SDAnimatedImage` with GIF format
+                encodedData = [image sd_imageDataAsFormat:format];
+            } else {
+                id<SDImageCoder> imageCoder = context[SDWebImageContextImageCoder];
+                if (!imageCoder) {
+                    imageCoder = [SDImageCodersManager sharedManager];
+                }
+                encodedData = [imageCoder encodedDataWithImage:image format:format options:context[SDWebImageContextImageEncodeOptions]];
             }
-            NSData *encodedData = [imageCoder encodedDataWithImage:image format:format options:context[SDWebImageContextImageEncodeOptions]];
             dispatch_async(self.ioQueue, ^{
                 [self _storeImageDataToDisk:encodedData forKey:key];
                 [self _archivedDataWithImage:image forKey:key];
