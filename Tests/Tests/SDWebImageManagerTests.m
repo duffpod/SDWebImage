@@ -504,7 +504,8 @@
         // Check the thumbnail image should be in memory cache (because we have only full data + thumbnail image)
         expect([SDImageCache.sharedImageCache imageFromMemoryCacheForKey:fullSizeKey].size).equal(CGSizeZero);
         expect([SDImageCache.sharedImageCache imageFromDiskCacheForKey:fullSizeKey]).notTo.beNil();
-        expect([SDImageCache.sharedImageCache imageFromMemoryCacheForKey:thumbnailKey].size).equal(thumbnailSize);
+        // Store disk no longer store into memory
+//        expect([SDImageCache.sharedImageCache imageFromMemoryCacheForKey:thumbnailKey].size).equal(thumbnailSize);
         expect([SDImageCache.sharedImageCache imageFromDiskCacheForKey:thumbnailKey]).beNil();
         
         [SDImageCache.sharedImageCache removeImageFromDiskForKey:fullSizeKey];

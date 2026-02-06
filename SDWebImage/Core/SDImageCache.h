@@ -263,6 +263,7 @@ typedef NS_OPTIONS(NSUInteger, SDImageCacheOptions) {
  *
  * @param imageData  The image data to store
  * @param key        The unique image cache key, usually it's image absolute URL
+ * @note In history, when disk cache hit, the image will write back into memory cache, which is mostly unwanted behavior. From new version this behavior is removed.
  */
 - (void)storeImageDataToDisk:(nullable NSData *)imageData
                       forKey:(nullable NSString *)key;
