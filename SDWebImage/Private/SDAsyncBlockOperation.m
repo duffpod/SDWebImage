@@ -15,10 +15,10 @@
 
 @end
 
-@implementation SDAsyncBlockOperation
-
-@synthesize executing = _executing;
-@synthesize finished = _finished;
+@implementation SDAsyncBlockOperation {
+    BOOL _executing;
+    BOOL _finished;
+}
 
 - (nonnull instancetype)initWithBlock:(nonnull SDAsyncBlock)block {
     self = [super init];
@@ -34,14 +34,25 @@
 }
 
 - (void)start {
+    BOOL cancelled;
     @synchronized (self) {
-        if (self.isCancelled) {
-            self.finished = YES;
-            return;
+        cancelled = self.isCancelled;
+        if (cancelled) {
+            [self willChangeValueForKey:@"isFinished"];
+            _finished = YES;
+        } else {
+            [self willChangeValueForKey:@"isFinished"];
+            [self willChangeValueForKey:@"isExecuting"];
+            _finished = NO;
+            _executing = YES;
         }
-        self.finished = NO;
-        self.executing = YES;
     }
+    if (cancelled) {
+        [self didChangeValueForKey:@"isFinished"];
+        return;
+    }
+    [self didChangeValueForKey:@"isExecuting"];
+    [self didChangeValueForKey:@"isFinished"];
     SDAsyncBlock executionBlock = self.executionBlock;
     if (executionBlock) {
         @weakify(self);
@@ -54,35 +65,50 @@
 }
 
 - (void)cancel {
+    BOOL wasExecuting;
     @synchronized (self) {
         [super cancel];
-        if (self.isExecuting) {
-            self.executing = NO;
-            self.finished = YES;
+        wasExecuting = _executing;
+        if (wasExecuting) {
+            [self willChangeValueForKey:@"isFinished"];
+            [self willChangeValueForKey:@"isExecuting"];
+            _executing = NO;
+            _finished = YES;
         }
+    }
+    if (wasExecuting) {
+        [self didChangeValueForKey:@"isExecuting"];
+        [self didChangeValueForKey:@"isFinished"];
     }
 }
 
- 
 - (void)complete {
+    BOOL wasExecuting;
     @synchronized (self) {
-        if (self.isExecuting) {
-            self.finished = YES;
-            self.executing = NO;
+        wasExecuting = _executing;
+        if (wasExecuting) {
+            [self willChangeValueForKey:@"isFinished"];
+            [self willChangeValueForKey:@"isExecuting"];
+            _finished = YES;
+            _executing = NO;
         }
+    }
+    if (wasExecuting) {
+        [self didChangeValueForKey:@"isExecuting"];
+        [self didChangeValueForKey:@"isFinished"];
     }
 }
 
-- (void)setFinished:(BOOL)finished {
-    [self willChangeValueForKey:@"isFinished"];
-    _finished = finished;
-    [self didChangeValueForKey:@"isFinished"];
+- (BOOL)isFinished {
+    @synchronized (self) {
+        return _finished;
+    }
 }
 
-- (void)setExecuting:(BOOL)executing {
-    [self willChangeValueForKey:@"isExecuting"];
-    _executing = executing;
-    [self didChangeValueForKey:@"isExecuting"];
+- (BOOL)isExecuting {
+    @synchronized (self) {
+        return _executing;
+    }
 }
 
 - (BOOL)isAsynchronous {
